@@ -703,7 +703,7 @@ describe('VueTable', () => {
   describe('rollBackUndo', () => {
     test('return changeDataIncrement', () => {
       const tBody = wrapper.vm;
-
+      tBody.selectedCell;
       tBody.tbodyData[1].a.value = 'fake';
       tBody.changeData(1, 'a');
       const index = tBody.changeDataIncrement - 1;
@@ -714,6 +714,24 @@ describe('VueTable', () => {
       expect(tBody.changeDataIncrement).toEqual(0);
       expect(tBody.storeUndoData).toEqual([]);
       expect(wrapper.emitted('tbody-undo-data')).toEqual([[store.rowIndex, store.header]]);
+    });
+  });
+
+  describe('pasteData', () => {
+    test('paste data into separate cells', () => {
+      const tBody = wrapper.vm;
+      wrapper.vm.updateSelectedCell('b', 0, 0);
+
+      const clipboardData = `Широта	Долгота	Тип рейса
+44.688822	37.564319	Транспортный
+57.402204	55.967241	`;
+      const pasteEvent = { clipboardData: { getData: () => clipboardData } };
+
+      tBody.pasteReplaceData(pasteEvent);
+
+      expect(tBody.tbodyData[0].a.value).toEqual('Широта');
+      expect(tBody.tbodyData[0].b.value).toEqual('Долгота');
+      expect(tBody.tbodyData[1].a.value).toEqual('44.688822');
     });
   });
 });

@@ -72,6 +72,7 @@
 <script type="text/javascript">
 import VueThead from './Thead.vue';
 import VueTbody from './Tbody.vue';
+import divideTextDataToCells from '../helpers/paste.js';
 
 const Fuse = require('fuse.js');
 
@@ -178,10 +179,10 @@ export default {
       }
     });
     document.addEventListener('paste', (event) => {
-      if (this.storeCopyDatas.length > 0) {
+      // if (this.storeCopyDatas.length > 0) {
         event.preventDefault();
-        this.pasteReplaceData();
-      }
+        this.pasteReplaceData(event);
+      // }
     });
     document.addEventListener('scroll', (event) => {
       this.scrollTopDocument(event);
@@ -651,12 +652,26 @@ export default {
         this.copyMultipleCell = false;
       }
     },
-    pasteReplaceData() {
+    pasteReplaceData(event) {
       const maxRow = this.tbodyData.length;
       this.cleanPropertyOnCell('paste');
 
+      const clipboardText = event.clipboardData.getData('text');
+      // Paste from clipboard
+      if (clipboardText && this.disabledEvent(this.selectedCell.col, this.selectedCell.header) && !this.eventDrag) {
+        const newCells = divideTextDataToCells(clipboardText);
+        const rowsToPaste = newCells.length;
+        const colsToPaste = newCells[0].length;
+        newCells.forEach((row, rowIndex) => {
+          row.forEach((cell, cellIndex) => {
+            const header = this.headerKeys[this.selectedCell.col + cellIndex];
+            this.tbodyData[this.selectedCell.row + rowIndex][header].value = cell;
+          });
+        });
+        // this.modifyMultipleCell();
+      }
       // copy / paste one cell || disable on disabled cell
-      if (this.storeCopyDatas[0].value && !this.copyMultipleCell && !this.selectedMultipleCell && !this.eventDrag && this.disabledEvent(this.selectedCell.col, this.selectedCell.header)) {
+      else if (this.storeCopyDatas[0].value && !this.copyMultipleCell && !this.selectedMultipleCell && !this.eventDrag && this.disabledEvent(this.selectedCell.col, this.selectedCell.header)) {
         const { duplicate } = this.tbodyData[this.selectedCell.row][this.selectedCell.header];
         this.storeCopyDatas[0].duplicate = duplicate;
         this.storeCopyDatas[0].active = true;
