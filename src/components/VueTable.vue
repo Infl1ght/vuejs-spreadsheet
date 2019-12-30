@@ -253,7 +253,7 @@ export default {
       const cell = this.tbodyData[rowIndex][header];
       this.changeDataIncrement += 1;
       this.storeUndoData.push({ rowIndex, header, cell });
-      this.$emit('tbody-change-data', rowIndex, header);
+      this.$emit('tbody-change-data', rowIndex, header, this.tbodyData);
     },
     rollBackUndo() {
       if (this.storeUndoData.length && this.changeDataIncrement > 0) {
@@ -656,9 +656,9 @@ export default {
       const maxRow = this.tbodyData.length;
       this.cleanPropertyOnCell('paste');
 
-      const clipboardText = event.clipboardData.getData('text');
       // Paste from clipboard
-      if (clipboardText && this.disabledEvent(this.selectedCell.col, this.selectedCell.header) && !this.eventDrag) {
+      if (event && event.clipboardData && event.clipboardData.getData('text') && this.disabledEvent(this.selectedCell.col, this.selectedCell.header) && !this.eventDrag) {
+        const clipboardText = event.clipboardData.getData('text');
         const newCells = divideTextDataToCells(clipboardText);
         const rowsToPaste = newCells.length;
         const colsToPaste = newCells[0].length;
@@ -668,7 +668,7 @@ export default {
             this.tbodyData[this.selectedCell.row + rowIndex][header].value = cell;
           });
         });
-        // this.modifyMultipleCell();
+        this.changeData(this.selectedCell.row, this.selectedCell.header);
       }
       // copy / paste one cell || disable on disabled cell
       else if (this.storeCopyDatas[0].value && !this.copyMultipleCell && !this.selectedMultipleCell && !this.eventDrag && this.disabledEvent(this.selectedCell.col, this.selectedCell.header)) {
