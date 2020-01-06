@@ -249,11 +249,11 @@ export default {
         this.$refs[`${this.customTable}-vueTable`].style.setProperty('--BoxCommentHeight', this.styleWrapVueTable.comment.heightBox);
       }
     },
-    changeData(rowIndex, header) {
+    changeData(rowIndex, header, bodyData) {
       const cell = this.tbodyData[rowIndex][header];
       this.changeDataIncrement += 1;
       this.storeUndoData.push({ rowIndex, header, cell });
-      this.$emit('tbody-change-data', rowIndex, header, this.tbodyData);
+      this.$emit('tbody-change-data', rowIndex, header, bodyData);
     },
     rollBackUndo() {
       if (this.storeUndoData.length && this.changeDataIncrement > 0) {
@@ -668,7 +668,7 @@ export default {
             this.tbodyData[this.selectedCell.row + rowIndex][header].value = cell;
           });
         });
-        this.changeData(this.selectedCell.row, this.selectedCell.header);
+        this.changeData(this.selectedCell.row, this.selectedCell.header, this.tbodyData);
       }
       // copy / paste one cell || disable on disabled cell
       else if (this.storeCopyDatas[0].value && !this.copyMultipleCell && !this.selectedMultipleCell && !this.eventDrag && this.disabledEvent(this.selectedCell.col, this.selectedCell.header)) {
