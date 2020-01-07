@@ -325,7 +325,7 @@ export default {
     handleSearchInputSelect(event, searchValue, col, header, rowIndex, colIndex) {
       const disableSearch = !(searchValue === '' && event.keyCode === 8);
 
-      if ((!this.keys.cmd || !this.keys.ctrl)
+      if ((!event.metaKey || !event.ctrlKey)
         && disableSearch
         && event.keyCode !== 13
         && event.keyCode !== 16
@@ -852,7 +852,7 @@ export default {
       }
 
       if (!column.active) {
-        if (!this.keys[16]) {
+        if (!event.shiftKey) {
           this.removeClass(['selected', 'rectangleSelection']);
         }
         this.removeClass(['search']);
@@ -1090,36 +1090,15 @@ export default {
     },
     moveKeyup(event) {
       if (event.keyCode === 16) {
-        this.keys[event.keyCode] = false;
         this.incrementCol = null;
         this.incrementRow = null;
         this.selectedMultipleCell = true;
-      }
-
-      if (event.keyCode === 91 || event.keyCode === 17) {
-        if (!this.disableKeyTimeout === null) {
-          clearTimeout(this.disableKeyTimeout);
-        }
-        this.disableKeyTimeout = setTimeout(() => {
-          this.keys.cmd = false;
-          this.keys.ctrl = false;
-          this.disableKeyTimeout = null;
-        }, 400);
       }
     },
     moveKeydown(event) {
       [this.actualElement] = document.getElementsByClassName('active_td');
 
-      if (event.keyCode === 16) {
-        this.keys[event.keyCode] = true;
-      }
-
-      if (event.keyCode === 91 || event.keyCode === 17) {
-        this.keys.cmd = true;
-        this.keys.ctrl = true;
-      }
-
-      if ((this.keys.cmd && event.keyCode === 90) || (this.keys.ctrl && event.keyCode === 90)) {
+      if ((event.metaKey && event.keyCode === 90) || (event.ctrlKey && event.keyCode === 90)) {
         this.$emit('undo');
       }
 
@@ -1155,7 +1134,7 @@ export default {
         this.moveOnTable(event, colIndex, rowIndex);
 
         // shift
-        if (this.keys[16]) {
+        if (event.shiftKey) {
           this.pressShiftMultipleCell(event, header, rowMax, rowIndex, colMax, colIndex);
         } else if (!this.lastSelectOpen && event.keyCode !== 8) {
           if (this.selectedMultipleCell) {
