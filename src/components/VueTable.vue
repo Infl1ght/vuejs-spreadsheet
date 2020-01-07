@@ -20,13 +20,11 @@
         :submenu-status-thead="submenuStatusThead"
         :submenu-thead="submenuThead"
         :tbody-index="customOptions.tbodyIndex"
-        :tbody-checkbox="customOptions.tbodyCheckbox"
         :thead-highlight="highlight.thead"
         :current-table="customTable"
         @handle-up-drag-size-header="handleUpDragSizeHeader"
         @handle-up-drag-to-fill="handleUpDragToFill"
         @submenu-enable="enableSubmenu"
-        @thead-checked-all-callback="callbackCheckedAll"
         @thead-submenu-click-callback="callbackSubmenuThead"
         @thead-td-context-menu="handleTheadContextMenu"
         @thead-td-sort="callbackSort">
@@ -39,7 +37,6 @@
         :ref="`${customTable}-vueTbody`"
         :tbody-data="tbodyData"
         :headers="headers"
-        :tbody-checkbox="customOptions.tbodyCheckbox"
         :tbody-index="customOptions.tbodyIndex"
         :trad="customOptions.trad"
         :disable-cells="disableCells"
@@ -48,9 +45,7 @@
         :submenu-status-tbody="submenuStatusTbody"
         :tbody-highlight="highlight.tbody"
         :current-table="customTable"
-        @tbody-checked-row="checkedRow"
         @handle-to-calculate-position="calculPosition"
-        @handle-to-open-select="enableSelect"
         @submenu-enable="enableSubmenu"
         @tbody-down-dragtofill="handleDownDragToFill"
         @tbody-handle-search-input-select="handleSearchInputSelect"
@@ -72,7 +67,7 @@
 <script type="text/javascript">
 import VueThead from './Thead.vue';
 import VueTbody from './Tbody.vue';
-import divideTextDataToCells from '../helpers/paste.js';
+import divideTextDataToCells from '../helpers/paste';
 
 const Fuse = require('fuse.js');
 
@@ -131,7 +126,6 @@ export default {
   data() {
     return {
       customTable: 0,
-      changeDataIncrement: 0,
       disableKeyTimeout: null,
       eventDrag: false,
       headerTop: 0,
@@ -147,7 +141,6 @@ export default {
       lastSubmenuOpen: null,
       oldTdActive: null,
       oldTdShow: null,
-      pressedShift: 0,
       rectangleSelectedCell: null,
       scrollDocument: null,
       scrollToSelectTimeout: null,
@@ -157,9 +150,7 @@ export default {
       selectedMultipleCell: false,
       selectedMultipleCellActive: false,
       setFirstCell: false,
-      storeCopyDatas: [],
       storeRectangleSelection: [],
-      storeUndoData: [],
       submenuStatusTbody: false,
       submenuStatusThead: false,
     };
@@ -174,21 +165,16 @@ export default {
     document.addEventListener('copy', (event) => {
       if (this.actualElement) {
         event.preventDefault();
-        this.storeCopyDatas = [];
         this.copyStoreData('copy');
       }
     });
     document.addEventListener('paste', (event) => {
-      // if (this.storeCopyDatas.length > 0) {
-        event.preventDefault();
-        this.pasteReplaceData(event);
-      // }
+      event.preventDefault();
+      this.pasteReplaceData(event);
     });
     document.addEventListener('scroll', (event) => {
       this.scrollTopDocument(event);
     });
-    // set property of triangle bg comment
-    this.setPropertyStyleOfComment();
   },
   watch: {
     tbodyData() {
@@ -199,9 +185,6 @@ export default {
     },
   },
   computed: {
-    checkedRows() {
-      return this.tbodyData.filter(x => x.checked);
-    },
     colHeaderWidths() {
       return this.headers.map(x => parseInt(x.style.width, 10));
     },
@@ -222,10 +205,6 @@ export default {
     },
   },
   methods: {
-    checkedRow(row) {
-      this.$emit('tbody-checked-row', row);
-      this.$refs[`${this.customTable}-vueThead`].checkedAll = false;
-    },
     highlightTdAndThead(rowIndex, colIndex) {
       this.highlight.tbody = [];
       this.highlight.thead = [];
@@ -235,40 +214,8 @@ export default {
     range(start, end) {
       return (new Array((end - start) + 1)).fill(undefined).map((_, i) => i + start);
     },
-    setPropertyStyleOfComment() {
-      if (this.styleWrapVueTable.comment && this.styleWrapVueTable.comment.borderColor) {
-        this.$refs[`${this.customTable}-vueTable`].style.setProperty('--borderCommentColor', this.styleWrapVueTable.comment.borderColor);
-      }
-      if (this.styleWrapVueTable.comment && this.styleWrapVueTable.comment.borderSize) {
-        this.$refs[`${this.customTable}-vueTable`].style.setProperty('--borderCommentSize', this.styleWrapVueTable.comment.borderSize);
-      }
-      if (this.styleWrapVueTable.comment && this.styleWrapVueTable.comment.widthBox) {
-        this.$refs[`${this.customTable}-vueTable`].style.setProperty('--boxCommentWidth', this.styleWrapVueTable.comment.widthBox);
-      }
-      if (this.styleWrapVueTable.comment && this.styleWrapVueTable.comment.heightBox) {
-        this.$refs[`${this.customTable}-vueTable`].style.setProperty('--BoxCommentHeight', this.styleWrapVueTable.comment.heightBox);
-      }
-    },
-    changeData(rowIndex, header, bodyData) {
-      const cell = this.tbodyData[rowIndex][header];
-      this.changeDataIncrement += 1;
-      this.storeUndoData.push({ rowIndex, header, cell });
-      this.$emit('tbody-change-data', rowIndex, header, bodyData);
-    },
-    rollBackUndo() {
-      if (this.storeUndoData.length && this.changeDataIncrement > 0) {
-        const index = this.changeDataIncrement - 1;
-        const store = this.storeUndoData[index];
-
-        this.$emit('tbody-undo-data', store.rowIndex, store.header);
-        this.tbodyData[store.rowIndex][store.header] = store.cell.duplicate;
-        this.storeUndoData.splice(index, 1);
-        this.changeDataIncrement -= 1;
-      }
-    },
-    clearStoreUndo() {
-      this.changeDataIncrement = 0;
-      this.storeUndoData = [];
+    changeData(rowIndex, header, newData) {
+      this.$emit('tbody-change-data', rowIndex, header, newData);
     },
     sorter(options) {
       return options.sort((a, b) => {
@@ -301,9 +248,6 @@ export default {
     createdCell() {
       // create cell if isn't exist
       this.tbodyData.forEach((tbody, rowIndex) => {
-        if (this.customOptions.tbodyCheckbox && !tbody.vuetable_checked) {
-          this.$set(this.tbodyData[rowIndex], 'vuetable_checked', false);
-        }
         this.headerKeys.forEach((header) => {
           if (!tbody[header]) {
             const data = JSON.parse(JSON.stringify(this.customOptions.newData));
@@ -326,15 +270,6 @@ export default {
         return !col.disabled;
       }
       return true;
-    },
-    debounce(fn, delay) {
-      let timeout;
-
-      return () => {
-        const functionCall = () => fn.apply(this, arguments);
-        clearTimeout(timeout);
-        timeout = setTimeout(functionCall, delay);
-      };
     },
     scrollFunction(event) {
       this.affixHeader(event, 'vueTable');
@@ -387,39 +322,6 @@ export default {
       //   this.$refs[`${this.customTable}-vueTbody`].$refs[`input-${this.customTable}-${colIndex}-${rowIndex}`][0].focus();
       // }
     },
-    enableSelect(event, header, col, rowIndex, colIndex) {
-      const currentElement = this.tbodyData[rowIndex][header];
-      if (!col.search) {
-        this.removeClass(['search', 'show']);
-        this.lastSelectOpen = {
-          col,
-          colIndex,
-          event,
-          header,
-          rowIndex,
-        };
-
-        this.$set(currentElement, 'search', true);
-        this.$set(currentElement, 'show', true);
-
-        this.$nextTick(() => {
-          this.$refs[`${this.customTable}-vueTbody`].$refs[`input-${this.customTable}-${colIndex}-${rowIndex}`][0].focus();
-          this.calculPosition(event, rowIndex, colIndex, 'dropdown');
-
-          if (currentElement.value !== '') {
-            this.showDropdown(colIndex, rowIndex);
-            const index = currentElement.selectOptions.map(x => x.value).indexOf(currentElement.value);
-            this.incrementOption = index;
-          } else {
-            this.incrementOption = 0;
-          }
-        });
-      } else {
-        this.$set(currentElement, 'search', false);
-        this.$set(currentElement, 'show', false);
-        this.lastSelectOpen = null;
-      }
-    },
     handleSearchInputSelect(event, searchValue, col, header, rowIndex, colIndex) {
       const disableSearch = !(searchValue === '' && event.keyCode === 8);
 
@@ -452,24 +354,8 @@ export default {
           const currentData = this.tbodyData[rowIndex][header];
           this.$set(currentData, 'search', true);
           this.$set(currentData, 'show', true);
-
-          this.showDropdown(colIndex, rowIndex);
         }
         this.incrementOption = 0;
-      }
-    },
-    showDropdown(colIndex, rowIndex) {
-      // clear timeout
-      if (this.$refs[`${this.customTable}-vueTbody`].$refs[`dropdown-${this.customTable}-${colIndex}-${rowIndex}`]) {
-        const dropdown = this.$refs[`${this.customTable}-vueTbody`].$refs[`dropdown-${this.customTable}-${colIndex}-${rowIndex}`][0];
-        if (!this.scrollToSelectTimeout === null) {
-          clearTimeout(this.scrollToSelectTimeout);
-        }
-        // set scrollTop on select
-        this.scrollToSelectTimeout = setTimeout(() => {
-          dropdown.scrollTop = 45 * this.incrementOption;
-          this.scrollToSelectTimeout = null;
-        }, 100);
       }
     },
     handleTbodySelectChange(event, header, col, option, rowIndex, colIndex) {
@@ -485,7 +371,7 @@ export default {
       this.$set(currentData, 'value', option.value);
 
       this.lastSelectOpen = null;
-      // remove class show on select when it change
+      // remove class show on select when it changes
       if (this.oldTdShow) this.tbodyData[this.oldTdShow.row][this.oldTdShow.key].show = false;
       this.enableSubmenu();
       // callback
@@ -1045,15 +931,6 @@ export default {
       this.$emit('tbody-input-change', event, header, rowIndex, colIndex);
       this.changeData(rowIndex, header);
     },
-    // callback
-    callbackCheckedAll(isChecked) {
-      this.$emit('tbody-all-checked-row', isChecked);
-      if (this.customOptions.tbodyCheckbox) {
-        this.tbodyData.forEach((data) => {
-          this.$set(data, 'vuetable_checked', isChecked);
-        });
-      }
-    },
     callbackSort(event, header, colIndex) {
       this.$emit('thead-td-sort', event, header, colIndex);
     },
@@ -1174,16 +1051,6 @@ export default {
       this.$set(this.tbodyData[rowIndex][header], 'active', false);
       this.incrementCol = this.incrementCol ? this.incrementCol : colIndex;
       this.incrementRow = this.incrementRow ? this.incrementRow : rowIndex;
-      if (this.pressedShift >= 0) {
-        this.pressedShift += 1;
-      }
-      if (this.pressedShift === 0) {
-        this.selectedCell = {
-          header,
-          row: rowIndex,
-          col: colIndex,
-        };
-      }
 
       // shift / left
       if (event.keyCode === 37) {
@@ -1227,7 +1094,6 @@ export default {
         this.incrementCol = null;
         this.incrementRow = null;
         this.selectedMultipleCell = true;
-        this.pressedShift = 0;
       }
 
       if (event.keyCode === 91 || event.keyCode === 17) {
@@ -1254,7 +1120,7 @@ export default {
       }
 
       if ((this.keys.cmd && event.keyCode === 90) || (this.keys.ctrl && event.keyCode === 90)) {
-        this.rollBackUndo();
+        this.$emit('undo');
       }
 
       if (this.lastSelectOpen) {
@@ -1363,9 +1229,31 @@ export default {
         // press esc
         if (event.keyCode === 27) {
           this.tbodyData[rowIndex][header].active = false;
-          this.storeCopyDatas = [];
           this.removeClass(['stateCopy']);
         }
+      } else if(this.actualElement && this.actualElement.getAttribute('current-table') === this.customTable.toString() && event.keyCode !== 16) {
+        const colIndex = Number(this.actualElement.getAttribute('data-col-index'));
+        const rowIndex = Number(this.actualElement.getAttribute('data-row-index'));
+        const header = this.actualElement.getAttribute('data-header');
+        if (event.keyCode === 13) {
+          this.actualElement.focus();
+          this.updateSelectedCell(header, rowIndex, colIndex);
+          return;
+        }
+
+        console.log(event.keyCode);
+              // stock oldTdShow in object
+        if (this.oldTdShow) this.tbodyData[this.oldTdShow.row][this.oldTdShow.key].show = false;
+
+        // add class show on element
+        this.$set(this.tbodyData[rowIndex][header], 'show', true);
+        this.actualElement.lastElementChild.focus();
+        this.oldTdShow = {
+          key: header,
+          row: rowIndex,
+          col: colIndex,
+        };
+        this.enableSubmenu();
       }
     },
   },

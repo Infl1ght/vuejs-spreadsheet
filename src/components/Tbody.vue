@@ -3,21 +3,7 @@
     <template v-for="(row, rowIndex) in tbodyData">
       <tr
         class="table_row"
-        :key="`row${rowIndex}`"
-        :class="{ 'checked_row': 'vuetable_checked' in tbodyData[rowIndex] && tbodyData[rowIndex].vuetable_checked === true }">
-
-        <td
-          v-if="tbodyCheckbox && 'vuetable_checked' in tbodyData[rowIndex]"
-          :class="{ 'highlight_spreadsheet': tbodyHighlight.includes(rowIndex) }"
-          :key="`checkbox-${currentTable}-${rowIndex}`"
-          class="vuejsspreadsheet_checkbox index">
-          <input
-            type="checkbox"
-            :id="`checkbox-${currentTable}-${rowIndex}`"
-            @change="checkedRow(tbodyData[rowIndex])"
-            v-model="tbodyData[rowIndex].vuetable_checked">
-          <label :for="`checkbox-${currentTable}-${rowIndex}`"></label>
-        </td>
+        :key="`row${rowIndex}`">
 
         <td
           v-if="tbodyIndex"
@@ -252,9 +238,6 @@ export default {
     },
   },
   methods: {
-    checkedRow(row) {
-      this.$emit('tbody-checked-row', row);
-    },
     handleHoverTriangleComment(header, rowIndex) {
       if (!this.vueTableComment[rowIndex]) {
         this.$set(this.vueTableComment, rowIndex, header);
@@ -364,12 +347,6 @@ $chedkedColor: #b2d1ff;
   min-height: 40px;
   height: 40px;
   transition: background ease .3s;
-  &.checked_row {
-    background: $chedkedColor;
-    td {
-      background: $chedkedColor;
-    }
-  }
   .vuejsspreadsheet_checkbox {
     position: relative;
     label {
